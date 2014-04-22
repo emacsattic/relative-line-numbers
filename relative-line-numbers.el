@@ -2,7 +2,7 @@
 
 ;; Author: Fanael Linithien <fanael4@gmail.com>
 ;; URL: https://github.com/Fanael/relative-line-numbers
-;; Version: 0.1
+;; Version: 0.1.1
 ;; Package-Requires: ((emacs "24"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -112,56 +112,68 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
 
 (defun relative-line-numbers--update ()
   "Update line numbers for the visible portion in the current window."
+  (save-excursion
+    (let* ((inhibit-point-motion-hooks t)
+           (pos (point-at-bol))
+           (start (window-start))
+           (end (window-end nil t)))
+      (setq relative-line-numbers--width (or (car (window-margins)) 0))
+      (relative-line-numbers--delete-overlays)
+      ;; The lines after the current one.
+      (let ((lineoffset 0))
+        (while (and (not (eobp))
+                    (< (point) end))
+          (forward-line 1)
+          (setq lineoffset (1+ lineoffset))
+          (relative-line-numbers--make-overlay
+           (point)
+           (funcall relative-line-numbers-format lineoffset)
+           'relative-line-numbers)))
+      ;; The lines before the current one.
+      (goto-char pos)
+      (let ((lineoffset 0))
+        (while (and (not (bobp))
+                    (> (point) start))
+          (forward-line -1)
+          (setq lineoffset (1+ lineoffset))
+          (relative-line-numbers--make-overlay
+           (point)
+           (funcall relative-line-numbers-format (- lineoffset))
+           'relative-line-numbers)))
+      ;; The current line.
+      (relative-line-numbers--make-overlay
+       pos
+       (funcall relative-line-numbers-format 0)
+       'relative-line-numbers-current-line))))
+
+(defun relative-line-numbers--update-from-timer ()
   (when relative-line-numbers-mode
-    (save-excursion
-      (let* ((inhibit-point-motion-hooks t)
-             (pos (point-at-bol))
-             (start (window-start))
-             (end (window-end nil t)))
-        (relative-line-numbers--delete-overlays)
-        ;; The lines after the current one.
-        (let ((lineoffset 0))
-          (while (and (not (eobp))
-                      (< (point) end))
-            (forward-line 1)
-            (setq lineoffset (1+ lineoffset))
-            (relative-line-numbers--make-overlay
-             (point)
-             (funcall relative-line-numbers-format lineoffset)
-             'relative-line-numbers)))
-        ;; The lines before the current one.
-        (goto-char pos)
-        (let ((lineoffset 0))
-          (while (and (not (bobp))
-                      (> (point) start))
-            (forward-line -1)
-            (setq lineoffset (1+ lineoffset))
-            (relative-line-numbers--make-overlay
-             (point)
-             (funcall relative-line-numbers-format (- lineoffset))
-             'relative-line-numbers)))
-        ;; The current line.
-        (relative-line-numbers--make-overlay
-         pos
-         (funcall relative-line-numbers-format 0)
-         'relative-line-numbers-current-line)))))
+    (relative-line-numbers--update)))
+
+(defun relative-line-numbers--schedule-update ()
+  (run-with-idle-timer relative-line-numbers-delay nil
+                       #'relative-line-numbers--update-from-timer))
+
+(defun relative-line-numbers--scroll (window _displaystart)
+  (with-current-buffer (window-buffer window)
+    (relative-line-numbers--set-margin-width window)
+    (relative-line-numbers--schedule-update)))
 
 (defun relative-line-numbers--on ()
   "Set up `relative-line-numbers-mode'."
-  (setq relative-line-numbers--timer (run-with-idle-timer relative-line-numbers-delay t
-                                                          #'relative-line-numbers--update))
-  (add-hook 'window-configuration-change-hook #'relative-line-numbers--update nil t)
+  (add-hook 'post-command-hook #'relative-line-numbers--schedule-update nil t)
+  (add-hook 'window-configuration-change-hook #'relative-line-numbers--schedule-update nil t)
+  (add-hook 'window-scroll-functions #'relative-line-numbers--scroll nil t)
   (add-hook 'change-major-mode-hook #'relative-line-numbers--off nil t)
   (add-hook 'kill-buffer-hook #'relative-line-numbers--off nil t))
 
 (defun relative-line-numbers--off ()
   "Tear down `relative-line-numbers-mode'."
-  (remove-hook 'window-configuration-change-hook #'relative-line-numbers--update t)
+  (remove-hook 'post-command-hook #'relative-line-numbers--schedule-update t)
+  (remove-hook 'window-configuration-change-hook #'relative-line-numbers--schedule-update t)
+  (remove-hook 'window-scroll-functions #'relative-line-numbers--scroll t)
   (remove-hook 'change-major-mode-hook #'relative-line-numbers--off t)
   (remove-hook 'kill-buffer-hook #'relative-line-numbers--off t)
-  (when relative-line-numbers--timer
-    (cancel-timer relative-line-numbers--timer)
-    (setq relative-line-numbers--timer nil))
   (relative-line-numbers--delete-overlays)
   (kill-local-variable 'relative-line-numbers--used-overlays)
   (relative-line-numbers--set-buffer-margin (current-buffer))
