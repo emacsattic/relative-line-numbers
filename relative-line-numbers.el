@@ -108,40 +108,45 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
   (number-to-string (abs offset)))
 
 (defun relative-line-numbers--update ()
-  "Update line numbers for the visible portion in the current window."
-  (save-excursion
-    (let* ((inhibit-point-motion-hooks t)
-           (pos (point-at-bol))
-           (start (window-start))
-           (end (window-end nil t)))
-      (setq relative-line-numbers--width (or (car (window-margins)) 0))
-      (relative-line-numbers--delete-overlays)
-      ;; The lines after the current one.
-      (let ((lineoffset 0))
-        (while (and (not (eobp))
-                    (< (point) end))
-          (forward-line 1)
-          (setq lineoffset (1+ lineoffset))
-          (relative-line-numbers--make-overlay
-           (point)
-           (funcall relative-line-numbers-format lineoffset)
-           'relative-line-numbers)))
-      ;; The lines before the current one.
-      (goto-char pos)
-      (let ((lineoffset 0))
-        (while (and (not (bobp))
-                    (> (point) start))
-          (forward-line -1)
-          (setq lineoffset (1+ lineoffset))
-          (relative-line-numbers--make-overlay
-           (point)
-           (funcall relative-line-numbers-format (- lineoffset))
-           'relative-line-numbers)))
-      ;; The current line.
-      (relative-line-numbers--make-overlay
-       pos
-       (funcall relative-line-numbers-format 0)
-       'relative-line-numbers-current-line))))
+  "Update line numbers in all windows showing the current buffer."
+  (relative-line-numbers--delete-overlays)
+  (mapc #'relative-line-numbers--update-window (get-buffer-window-list nil nil 'visible)))
+
+(defun relative-line-numbers--update-window (window)
+  "Update line numbers in the visible portion of WINDOW."
+  (with-selected-window window
+    (save-excursion
+      (let* ((inhibit-point-motion-hooks t)
+             (pos (point-at-bol))
+             (start (window-start))
+             (end (window-end nil t)))
+        (setq relative-line-numbers--width (or (car (window-margins)) 0))
+        ;; The lines after the current one.
+        (let ((lineoffset 0))
+          (while (and (not (eobp))
+                      (< (point) end))
+            (forward-line 1)
+            (setq lineoffset (1+ lineoffset))
+            (relative-line-numbers--make-overlay
+             (point)
+             (funcall relative-line-numbers-format lineoffset)
+             'relative-line-numbers)))
+        ;; The lines before the current one.
+        (goto-char pos)
+        (let ((lineoffset 0))
+          (while (and (not (bobp))
+                      (> (point) start))
+            (forward-line -1)
+            (setq lineoffset (1+ lineoffset))
+            (relative-line-numbers--make-overlay
+             (point)
+             (funcall relative-line-numbers-format (- lineoffset))
+             'relative-line-numbers)))
+        ;; The current line.
+        (relative-line-numbers--make-overlay
+         pos
+         (funcall relative-line-numbers-format 0)
+         'relative-line-numbers-current-line)))))
 
 (defun relative-line-numbers--update-from-timer ()
   (when relative-line-numbers-mode
