@@ -80,9 +80,6 @@ lines, from the current line, and return a string."
   "The list of overlays current in use.")
 (make-variable-buffer-local 'relative-line-numbers--used-overlays)
 
-(defvar relative-line-numbers--timer nil)
-(make-variable-buffer-local 'relative-line-numbers--timer)
-
 ;;;###autoload
 (define-minor-mode relative-line-numbers-mode
   "Display relative line numbers on the left margin.
