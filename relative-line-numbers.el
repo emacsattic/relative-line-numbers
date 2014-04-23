@@ -113,6 +113,28 @@ Return the absolute value of OFFSET, converted to string."
   (relative-line-numbers--delete-overlays)
   (mapc #'relative-line-numbers--update-window (get-buffer-window-list nil nil 'visible)))
 
+(defmacro relative-line-numbers--make-line-overlays (direction limit)
+  "Make the line number overlays for lines before or after point.
+DIRECTION is either :forward or :backward.
+LIMIT is the buffer position to end the operation when reached."
+  (unless (memq direction '(:forward :backward))
+    (error "direction can be only :forward or :backward"))
+  (let ((limitsym (make-symbol "limit"))
+        (lineoffsetsym (make-symbol "lineoffset")))
+    `(let* ((,limitsym ,limit)
+            (,lineoffsetsym 0))
+       (while ,(if (eq direction :forward)
+                   `(and (not (eobp)) (< (point) ,limitsym))
+                 `(and (not (bobp)) (> (point) ,limitsym)))
+         (forward-line ,(if (eq direction :forward) 1 -1))
+         (setq ,lineoffsetsym
+               (,(if (eq direction :forward)
+                     '1+
+                   '1-) ,lineoffsetsym))
+         (relative-line-numbers--make-overlay
+          (funcall relative-line-numbers-format ,lineoffsetsym)
+          'relative-line-numbers)))))
+
 (defun relative-line-numbers--update-window (window)
   "Update line numbers in the visible portion of WINDOW."
   (with-selected-window window
@@ -122,30 +144,11 @@ Return the absolute value of OFFSET, converted to string."
              (start (window-start))
              (end (window-end nil t)))
         (setq relative-line-numbers--width (or (car (window-margins)) 0))
-        ;; The lines after the current one.
-        (let ((lineoffset 0))
-          (while (and (not (eobp))
-                      (< (point) end))
-            (forward-line 1)
-            (setq lineoffset (1+ lineoffset))
-            (relative-line-numbers--make-overlay
-             (point)
-             (funcall relative-line-numbers-format lineoffset)
-             'relative-line-numbers)))
-        ;; The lines before the current one.
+        (relative-line-numbers--make-line-overlays :forward end)
         (goto-char pos)
-        (let ((lineoffset 0))
-          (while (and (not (bobp))
-                      (> (point) start))
-            (forward-line -1)
-            (setq lineoffset (1+ lineoffset))
-            (relative-line-numbers--make-overlay
-             (point)
-             (funcall relative-line-numbers-format (- lineoffset))
-             'relative-line-numbers)))
-        ;; The current line.
+        (relative-line-numbers--make-line-overlays :backward start)
+        (goto-char pos)
         (relative-line-numbers--make-overlay
-         pos
          (funcall relative-line-numbers-format 0)
          'relative-line-numbers-current-line)))))
 
@@ -217,8 +220,8 @@ If `relative-line-numbers-mode' is off, hide the left margin."
   (mapc #'delete-overlay relative-line-numbers--used-overlays)
   (setq relative-line-numbers--used-overlays nil))
 
-(defun relative-line-numbers--make-overlay (pos str face)
-  "Make a line number overlay at POS.
+(defun relative-line-numbers--make-overlay (str face)
+  "Make a line number overlay at point.
 STR is the string to display, FACE is the face to fontify the string
 with.
 
@@ -227,7 +230,8 @@ This function changes the margin width if STR would not fit."
     (when (> strlen relative-line-numbers--width)
       (setq relative-line-numbers--width strlen)
       (relative-line-numbers--set-current-buffer-margin)))
-  (let ((overlay (make-overlay pos pos)))
+  (let* ((pos (point))
+         (overlay (make-overlay pos pos)))
     (overlay-put overlay 'before-string
                  (propertize " " 'display `((margin left-margin)
                                             ,(propertize str 'face face))))
