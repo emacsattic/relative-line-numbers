@@ -45,7 +45,7 @@
   :group 'convenience
   :prefix "relative-line-numbers-")
 
-(defcustom relative-line-numbers-delay 0.001
+(defcustom relative-line-numbers-delay 0
   "The delay, in seconds, before updating the line numbers."
   :type 'number
   :group 'relative-line-numbers)
@@ -151,6 +151,21 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
   (run-with-idle-timer relative-line-numbers-delay nil
                        #'relative-line-numbers--update-from-timer))
 
+(defun relative-line-numbers--post-command-update ()
+  (cond
+   ;; If it's a scroll bar command, always delay the update so that we
+   ;; don't slow down scrolling.
+   ((memq this-command '(scroll-bar-toolkit-scroll
+                         scroll-bar-drag
+                         scroll-bar-scroll-up
+                         scroll-bar-scroll-down))
+    (let ((relative-line-numbers-delay (max 0.05 relative-line-numbers-delay)))
+      (relative-line-numbers--schedule-update)))
+   ((= relative-line-numbers-delay 0)
+    (relative-line-numbers--update))
+   (t
+    (relative-line-numbers--schedule-update))))
+
 (defun relative-line-numbers--scroll (window _displaystart)
   (with-current-buffer (window-buffer window)
     (relative-line-numbers--set-margin-width window)
@@ -158,14 +173,14 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
 
 (defun relative-line-numbers--on ()
   "Set up `relative-line-numbers-mode'."
-  (add-hook 'post-command-hook #'relative-line-numbers--schedule-update nil t)
+  (add-hook 'post-command-hook #'relative-line-numbers--post-command-update nil t)
   (add-hook 'window-configuration-change-hook #'relative-line-numbers--schedule-update nil t)
   (add-hook 'window-scroll-functions #'relative-line-numbers--scroll nil t)
   (add-hook 'change-major-mode-hook #'relative-line-numbers--off nil t))
 
 (defun relative-line-numbers--off ()
   "Tear down `relative-line-numbers-mode'."
-  (remove-hook 'post-command-hook #'relative-line-numbers--schedule-update t)
+  (remove-hook 'post-command-hook #'relative-line-numbers--post-command-update t)
   (remove-hook 'window-configuration-change-hook #'relative-line-numbers--schedule-update t)
   (remove-hook 'window-scroll-functions #'relative-line-numbers--scroll t)
   (remove-hook 'change-major-mode-hook #'relative-line-numbers--off t)
