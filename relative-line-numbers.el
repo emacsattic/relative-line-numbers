@@ -161,8 +161,7 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
   (add-hook 'post-command-hook #'relative-line-numbers--schedule-update nil t)
   (add-hook 'window-configuration-change-hook #'relative-line-numbers--schedule-update nil t)
   (add-hook 'window-scroll-functions #'relative-line-numbers--scroll nil t)
-  (add-hook 'change-major-mode-hook #'relative-line-numbers--off nil t)
-  (add-hook 'kill-buffer-hook #'relative-line-numbers--off nil t))
+  (add-hook 'change-major-mode-hook #'relative-line-numbers--off nil t))
 
 (defun relative-line-numbers--off ()
   "Tear down `relative-line-numbers-mode'."
@@ -170,7 +169,6 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
   (remove-hook 'window-configuration-change-hook #'relative-line-numbers--schedule-update t)
   (remove-hook 'window-scroll-functions #'relative-line-numbers--scroll t)
   (remove-hook 'change-major-mode-hook #'relative-line-numbers--off t)
-  (remove-hook 'kill-buffer-hook #'relative-line-numbers--off t)
   (relative-line-numbers--delete-overlays)
   (kill-local-variable 'relative-line-numbers--used-overlays)
   (relative-line-numbers--set-buffer-margin (current-buffer))
