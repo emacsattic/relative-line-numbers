@@ -2,7 +2,7 @@
 
 ;; Author: Fanael Linithien <fanael4@gmail.com>
 ;; URL: https://github.com/Fanael/relative-line-numbers
-;; Version: 0.2
+;; Version: 0.2.1
 ;; Package-Requires: ((emacs "24"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -149,15 +149,18 @@ WINDOW is the window to show overlays in."
          'relative-line-numbers-current-line
          window)))))
 
-(defun relative-line-numbers--update-from-timer ()
-  "Run the scheduled line number update."
-  (when relative-line-numbers-mode
-    (relative-line-numbers--update)))
+(defun relative-line-numbers--update-from-timer (window)
+  "Run the scheduled line number update in WINDOW."
+  (when (window-live-p window)
+    (with-selected-window window
+      (when relative-line-numbers-mode
+        (relative-line-numbers--update)))))
 
 (defun relative-line-numbers--schedule-update ()
   "Schedule a line number update."
   (run-with-idle-timer relative-line-numbers-delay nil
-                       #'relative-line-numbers--update-from-timer))
+                       #'relative-line-numbers--update-from-timer
+                       (selected-window)))
 
 (defun relative-line-numbers--post-command-update ()
   "Update or schedule an update after a command."
