@@ -186,7 +186,7 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
   (remove-hook 'change-major-mode-hook #'relative-line-numbers--off t)
   (relative-line-numbers--delete-overlays)
   (kill-local-variable 'relative-line-numbers--used-overlays)
-  (relative-line-numbers--set-buffer-margin (current-buffer))
+  (relative-line-numbers--set-current-buffer-margin)
   (kill-local-variable 'relative-line-numbers--width))
 
 (defun relative-line-numbers--set-margin-width (window)
@@ -197,9 +197,9 @@ If `relative-line-numbers-mode' is off, hide the left margin."
                         relative-line-numbers--width)
                       (cdr (window-margins window))))
 
-(defun relative-line-numbers--set-buffer-margin (buffer)
-  "Set the left margin width in all windows showing BUFFER."
-  (dolist (window (get-buffer-window-list buffer nil t))
+(defun relative-line-numbers--set-current-buffer-margin ()
+  "Set the left margin width in all windows showing the current buffer."
+  (dolist (window (get-buffer-window-list nil nil t))
     (relative-line-numbers--set-margin-width window)))
 
 (defun relative-line-numbers--delete-overlays ()
@@ -216,7 +216,7 @@ This function changes the margin width if STR would not fit."
   (let ((strlen (length str)))
     (when (> strlen relative-line-numbers--width)
       (setq relative-line-numbers--width strlen)
-      (relative-line-numbers--set-buffer-margin (current-buffer))))
+      (relative-line-numbers--set-current-buffer-margin)))
   (let ((overlay (make-overlay pos pos)))
     (overlay-put overlay 'before-string
                  (propertize " " 'display `((margin left-margin)
