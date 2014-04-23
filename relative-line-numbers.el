@@ -104,7 +104,8 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
       (relative-line-numbers-mode))))
 
 (defun relative-line-numbers-default-format (offset)
-  "The default formatting function."
+  "The default formatting function.
+Return the absolute value of OFFSET, converted to string."
   (number-to-string (abs offset)))
 
 (defun relative-line-numbers--update ()
@@ -149,14 +150,17 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
          'relative-line-numbers-current-line)))))
 
 (defun relative-line-numbers--update-from-timer ()
+  "Run the scheduled line number update."
   (when relative-line-numbers-mode
     (relative-line-numbers--update)))
 
 (defun relative-line-numbers--schedule-update ()
+  "Schedule a line number update."
   (run-with-idle-timer relative-line-numbers-delay nil
                        #'relative-line-numbers--update-from-timer))
 
 (defun relative-line-numbers--post-command-update ()
+  "Update or schedule an update after a command."
   (cond
    ;; If it's a scroll bar command, always delay the update so that we
    ;; don't slow down scrolling.
@@ -172,6 +176,7 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
     (relative-line-numbers--schedule-update))))
 
 (defun relative-line-numbers--scroll (window _displaystart)
+  "Schedule a line number update after scrolling."
   (with-current-buffer (window-buffer window)
     (relative-line-numbers--set-margin-width window)
     (relative-line-numbers--schedule-update)))
