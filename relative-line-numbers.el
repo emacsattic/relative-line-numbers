@@ -180,7 +180,7 @@ WINDOW is the window to show overlays in."
 
 (defun relative-line-numbers--scroll (window _displaystart)
   "Schedule a line number update after scrolling."
-  (with-current-buffer (window-buffer window)
+  (with-selected-window window
     (relative-line-numbers--set-margin-width window)
     (relative-line-numbers--schedule-update)))
 
