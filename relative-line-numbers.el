@@ -136,7 +136,7 @@ WINDOW is the window to show overlays in."
     (relative-line-numbers--delete-window-overlays window)
     (save-excursion
       (let* ((inhibit-point-motion-hooks t)
-             (pos (point-at-bol))
+             (pos (line-beginning-position))
              (start (window-start))
              (end (window-end nil t)))
         (setq relative-line-numbers--width (or (car (window-margins)) 0))
