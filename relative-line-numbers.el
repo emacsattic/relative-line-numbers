@@ -2,7 +2,7 @@
 
 ;; Author: Fanael Linithien <fanael4@gmail.com>
 ;; URL: https://github.com/Fanael/relative-line-numbers
-;; Version: 0.2.1
+;; Version: 0.2.2
 ;; Package-Requires: ((emacs "24"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -206,8 +206,8 @@ WINDOW is the window to show overlays in."
   "Set the left margin width to `relative-line-numbers--width'.
 If `relative-line-numbers-mode' is off, hide the left margin."
   (set-window-margins window
-                      (when relative-line-numbers-mode
-                        relative-line-numbers--width)
+                      (and relative-line-numbers-mode
+                           relative-line-numbers--width)
                       (cdr (window-margins window))))
 
 (defun relative-line-numbers--set-current-buffer-margin ()
