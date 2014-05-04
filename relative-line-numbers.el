@@ -2,7 +2,7 @@
 
 ;; Author: Fanael Linithien <fanael4@gmail.com>
 ;; URL: https://github.com/Fanael/relative-line-numbers
-;; Version: 0.2.2
+;; Version: 0.2.3
 ;; Package-Requires: ((emacs "24"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -162,15 +162,19 @@ WINDOW is the window to show overlays in."
                        #'relative-line-numbers--update-from-timer
                        (selected-window)))
 
+(defun relative-line-numbers--is-scroll-bar-command (command)
+  "Non-nil iff COMMAND is a scroll bar command."
+  (memq command '(scroll-bar-toolkit-scroll
+                  scroll-bar-drag
+                  scroll-bar-scroll-up
+                  scroll-bar-scroll-down)))
+
 (defun relative-line-numbers--post-command-update ()
   "Update or schedule an update after a command."
   (cond
    ;; If it's a scroll bar command, always delay the update so that we
    ;; don't slow down scrolling.
-   ((memq this-command '(scroll-bar-toolkit-scroll
-                         scroll-bar-drag
-                         scroll-bar-scroll-up
-                         scroll-bar-scroll-down))
+   ((relative-line-numbers--is-scroll-bar-command this-command)
     (let ((relative-line-numbers-delay (max 0.05 relative-line-numbers-delay)))
       (relative-line-numbers--schedule-update)))
    ((= relative-line-numbers-delay 0)
@@ -182,7 +186,12 @@ WINDOW is the window to show overlays in."
   "Schedule a line number update after scrolling."
   (with-selected-window window
     (relative-line-numbers--set-margin-width window)
-    (relative-line-numbers--schedule-update)))
+    ;; If it's a scroll bar command, always delay the update so that we
+    ;; don't slow down scrolling.
+    (if (relative-line-numbers--is-scroll-bar-command last-command)
+        (let ((relative-line-numbers-delay (max 0.001 relative-line-numbers-delay)))
+          (relative-line-numbers--schedule-update))
+      (relative-line-numbers--schedule-update))))
 
 (defun relative-line-numbers--on ()
   "Set up `relative-line-numbers-mode'."
