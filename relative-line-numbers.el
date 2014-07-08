@@ -185,7 +185,9 @@ WINDOW is the window to show overlays in."
   (add-hook 'window-configuration-change-hook #'relative-line-numbers--schedule-update nil t)
   (add-hook 'window-scroll-functions #'relative-line-numbers--scroll nil t)
   (add-hook 'change-major-mode-hook #'relative-line-numbers--off nil t)
-  (relative-line-numbers--update))
+  (dolist (window (get-buffer-window-list nil nil t))
+    (with-selected-window window
+      (relative-line-numbers--update))))
 
 (defun relative-line-numbers--off ()
   "Tear down `relative-line-numbers-mode'."
