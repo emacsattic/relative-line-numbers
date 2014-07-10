@@ -2,7 +2,7 @@
 
 ;; Author: Fanael Linithien <fanael4@gmail.com>
 ;; URL: https://github.com/Fanael/relative-line-numbers
-;; Version: 0.2.4
+;; Version: 0.2.5
 ;; Package-Requires: ((emacs "24"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -104,13 +104,13 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
 Return the absolute value of OFFSET, converted to string."
   (number-to-string (abs offset)))
 
-(defmacro relative-line-numbers--do-buffer-windows (name &rest body)
+(defmacro relative-line-numbers--do-current-buffer-windows (window &rest body)
   "Loop over the windows displaying the current buffer.
-Evaluate BODY with NAME bound to each window displaying the current buffer."
+Evaluate BODY with WINDOW bound to each window displaying the current buffer."
   (declare (indent 1))
-  (unless (symbolp name)
+  (unless (symbolp window)
     (error "name is not a symbol"))
-  `(dolist (,name (get-buffer-window-list nil nil t))
+  `(dolist (,window (get-buffer-window-list nil nil t))
      ,@body))
 
 (defmacro relative-line-numbers--make-line-overlays (direction limit window)
@@ -139,8 +139,8 @@ WINDOW is the window to show overlays in."
           'relative-line-numbers
           ,windowsym)))))
 
-(defun relative-line-numbers--update ()
-  "Update line numbers in the visible portion of the current window."
+(defun relative-line-numbers--update-selected-window ()
+  "Update line numbers in the visible portion of the selected window."
   (let ((window (selected-window)))
     (relative-line-numbers--delete-window-overlays window)
     (save-excursion
@@ -160,66 +160,71 @@ WINDOW is the window to show overlays in."
            'relative-line-numbers-current-line
            window))))))
 
-(defun relative-line-numbers--update-from-timer (window)
-  "Run the scheduled line number update in WINDOW."
-  (when (window-live-p window)
+(defun relative-line-numbers--update-current-buffer ()
+  "Update line numbers in all windows displaying the current buffer."
+  (relative-line-numbers--do-current-buffer-windows window
     (with-selected-window window
+      (relative-line-numbers--update-selected-window))))
+
+(defun relative-line-numbers--run-scheduled-update (buffer)
+  "Run a scheduled line number update in BUFFER."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
       (when relative-line-numbers-mode
-        (relative-line-numbers--update)))))
+        (relative-line-numbers--update-current-buffer)))))
 
-(defun relative-line-numbers--schedule-update ()
-  "Schedule a line number update."
+(defun relative-line-numbers--schedule-current-buffer-update ()
+  "Schedule a line number update in the current buffer."
   (run-with-idle-timer relative-line-numbers-delay nil
-                       #'relative-line-numbers--update-from-timer
-                       (selected-window)))
+                       #'relative-line-numbers--run-scheduled-update
+                       (current-buffer)))
 
-(defun relative-line-numbers--post-command-update ()
-  "Update or schedule an update after a command."
+(defun relative-line-numbers--update-or-schedule-current-buffer ()
+  "Update or schedule an update for the current buffer."
   (cond
    ((= relative-line-numbers-delay 0)
-    (relative-line-numbers--update))
+    (relative-line-numbers--update-current-buffer))
    (t
-    (relative-line-numbers--schedule-update))))
+    (relative-line-numbers--schedule-current-buffer-update))))
 
 (defun relative-line-numbers--scroll (window _displaystart)
-  "Schedule a line number update after scrolling."
+  "Run or schedule a line number update after scrolling."
   (with-selected-window window
-    (relative-line-numbers--set-margin-width window)
+    (relative-line-numbers--set-margin-width)
     (when relative-line-numbers-mode
-      (relative-line-numbers--post-command-update))))
+      (relative-line-numbers--update-or-schedule-current-buffer))))
 
 (defun relative-line-numbers--on ()
   "Set up `relative-line-numbers-mode'."
-  (add-hook 'post-command-hook #'relative-line-numbers--post-command-update nil t)
-  (add-hook 'window-configuration-change-hook #'relative-line-numbers--schedule-update nil t)
+  (add-hook 'post-command-hook #'relative-line-numbers--update-or-schedule-current-buffer nil t)
+  (add-hook 'window-configuration-change-hook #'relative-line-numbers--update-or-schedule-current-buffer nil t)
   (add-hook 'window-scroll-functions #'relative-line-numbers--scroll nil t)
   (add-hook 'change-major-mode-hook #'relative-line-numbers--off nil t)
-  (relative-line-numbers--do-buffer-windows window
-    (with-selected-window window
-      (relative-line-numbers--update))))
+  (relative-line-numbers--update-current-buffer))
 
 (defun relative-line-numbers--off ()
   "Tear down `relative-line-numbers-mode'."
-  (remove-hook 'post-command-hook #'relative-line-numbers--post-command-update t)
-  (remove-hook 'window-configuration-change-hook #'relative-line-numbers--schedule-update t)
+  (remove-hook 'post-command-hook #'relative-line-numbers--update-or-schedule-current-buffer t)
+  (remove-hook 'window-configuration-change-hook #'relative-line-numbers--update-or-schedule-current-buffer t)
   (remove-hook 'window-scroll-functions #'relative-line-numbers--scroll t)
   (remove-hook 'change-major-mode-hook #'relative-line-numbers--off t)
   (relative-line-numbers--delete-overlays)
   (relative-line-numbers--set-current-buffer-margin)
   (kill-local-variable 'relative-line-numbers--width))
 
-(defun relative-line-numbers--set-margin-width (window)
+(defun relative-line-numbers--set-margin-width ()
   "Set the left margin width to `relative-line-numbers--width'.
-If `relative-line-numbers-mode' is off, hide the left margin."
-  (set-window-margins window
-                      (and relative-line-numbers-mode
-                           relative-line-numbers--width)
-                      (cdr (window-margins window))))
+If `relative-line-numbers-mode' is off, hide the left margin.
+The function operates on the selected window."
+  (set-window-margins nil
+                      (if relative-line-numbers-mode relative-line-numbers--width nil)
+                      (cdr (window-margins))))
 
 (defun relative-line-numbers--set-current-buffer-margin ()
   "Set the left margin width in all windows showing the current buffer."
-  (relative-line-numbers--do-buffer-windows window
-    (relative-line-numbers--set-margin-width window)))
+  (relative-line-numbers--do-current-buffer-windows window
+    (with-selected-window window
+      (relative-line-numbers--set-margin-width))))
 
 (defun relative-line-numbers--delete-window-overlays (window)
   "Delete all overlays belonging to WINDOW."
@@ -228,7 +233,7 @@ If `relative-line-numbers-mode' is off, hide the left margin."
 
 (defun relative-line-numbers--delete-overlays ()
   "Delete all used overlays."
-  (relative-line-numbers--do-buffer-windows window
+  (relative-line-numbers--do-current-buffer-windows window
     (relative-line-numbers--delete-window-overlays window)))
 
 (defun relative-line-numbers--make-overlay (str face window)
