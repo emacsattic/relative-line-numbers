@@ -104,6 +104,15 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
 Return the absolute value of OFFSET, converted to string."
   (number-to-string (abs offset)))
 
+(defmacro relative-line-numbers--do-buffer-windows (name &rest body)
+  "Loop over the windows displaying the current buffer.
+Evaluate BODY with NAME bound to each window displaying the current buffer."
+  (declare (indent 1))
+  (unless (symbolp name)
+    (error "name is not a symbol"))
+  `(dolist (,name (get-buffer-window-list nil nil t))
+     ,@body))
+
 (defmacro relative-line-numbers--make-line-overlays (direction limit window)
   "Make the line number overlays for lines before or after point.
 DIRECTION is either :forward or :backward.
@@ -185,7 +194,7 @@ WINDOW is the window to show overlays in."
   (add-hook 'window-configuration-change-hook #'relative-line-numbers--schedule-update nil t)
   (add-hook 'window-scroll-functions #'relative-line-numbers--scroll nil t)
   (add-hook 'change-major-mode-hook #'relative-line-numbers--off nil t)
-  (dolist (window (get-buffer-window-list nil nil t))
+  (relative-line-numbers--do-buffer-windows window
     (with-selected-window window
       (relative-line-numbers--update))))
 
@@ -209,7 +218,7 @@ If `relative-line-numbers-mode' is off, hide the left margin."
 
 (defun relative-line-numbers--set-current-buffer-margin ()
   "Set the left margin width in all windows showing the current buffer."
-  (dolist (window (get-buffer-window-list nil nil t))
+  (relative-line-numbers--do-buffer-windows window
     (relative-line-numbers--set-margin-width window)))
 
 (defun relative-line-numbers--delete-window-overlays (window)
@@ -219,7 +228,7 @@ If `relative-line-numbers-mode' is off, hide the left margin."
 
 (defun relative-line-numbers--delete-overlays ()
   "Delete all used overlays."
-  (dolist (window (get-buffer-window-list nil nil t))
+  (relative-line-numbers--do-buffer-windows window
     (relative-line-numbers--delete-window-overlays window)))
 
 (defun relative-line-numbers--make-overlay (str face window)
