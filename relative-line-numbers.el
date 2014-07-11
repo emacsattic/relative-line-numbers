@@ -208,9 +208,9 @@ WINDOW is the window to show overlays in."
   (remove-hook 'window-configuration-change-hook #'relative-line-numbers--update-or-schedule-current-buffer t)
   (remove-hook 'window-scroll-functions #'relative-line-numbers--scroll t)
   (remove-hook 'change-major-mode-hook #'relative-line-numbers--off t)
+  (kill-local-variable 'relative-line-numbers--width)
   (relative-line-numbers--delete-overlays)
-  (relative-line-numbers--set-current-buffer-margin)
-  (kill-local-variable 'relative-line-numbers--width))
+  (relative-line-numbers--set-current-buffer-margin))
 
 (defun relative-line-numbers--set-margin-width ()
   "Set the left margin width to `relative-line-numbers--width'.
