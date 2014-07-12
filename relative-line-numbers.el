@@ -142,7 +142,6 @@ WINDOW is the window to show overlays in."
 (defun relative-line-numbers--update-selected-window ()
   "Update line numbers in the visible portion of the selected window."
   (let ((window (selected-window)))
-    (relative-line-numbers--delete-window-overlays window)
     (save-excursion
       (let* ((inhibit-point-motion-hooks t)
              (pos (line-beginning-position))
@@ -150,6 +149,7 @@ WINDOW is the window to show overlays in."
              (end (window-end nil t)))
         (when (and (<= start pos)
                    (<= pos end))
+          (relative-line-numbers--delete-window-overlays window)
           (setq relative-line-numbers--width 0)
           (relative-line-numbers--make-line-overlays :forward end window)
           (goto-char pos)
