@@ -2,7 +2,7 @@
 
 ;; Author: Fanael Linithien <fanael4@gmail.com>
 ;; URL: https://github.com/Fanael/relative-line-numbers
-;; Version: 0.2.5
+;; Version: 0.2.6
 ;; Package-Requires: ((emacs "24"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -48,6 +48,11 @@
 (defcustom relative-line-numbers-delay 0
   "The delay, in seconds, before updating the line numbers."
   :type 'number
+  :group 'relative-line-numbers)
+
+(defcustom relative-line-numbers-count-invisible-lines t
+  "If nil, do not count invisible lines."
+  :type 'boolean
   :group 'relative-line-numbers)
 
 (defcustom relative-line-numbers-format #'relative-line-numbers-default-format
@@ -122,18 +127,23 @@ WINDOW is the window to show overlays in."
     (error "Direction can be only :forward or :backward"))
   (let ((limitsym (make-symbol "limit"))
         (lineoffsetsym (make-symbol "lineoffset"))
-        (windowsym (make-symbol "window")))
+        (windowsym (make-symbol "window"))
+        (forwardlinefuncsym (make-symbol "forwardlinefunc")))
     `(let* ((,limitsym ,limit)
             (,lineoffsetsym 0)
-            (,windowsym ,window))
+            (,windowsym ,window)
+            (,forwardlinefuncsym (if relative-line-numbers-count-invisible-lines
+                                     'forward-line
+                                   'forward-visible-line)))
        (while ,(if (eq direction :forward)
                    `(and (not (eobp)) (< (point) ,limitsym))
                  `(and (not (bobp)) (> (point) ,limitsym)))
-         (forward-line ,(if (eq direction :forward) 1 -1))
+         (funcall ,forwardlinefuncsym ,(if (eq direction :forward) 1 -1))
          (setq ,lineoffsetsym
                (,(if (eq direction :forward)
                      '1+
-                   '1-) ,lineoffsetsym))
+                   '1-)
+                ,lineoffsetsym))
          (relative-line-numbers--make-overlay
           (funcall relative-line-numbers-format ,lineoffsetsym)
           'relative-line-numbers
