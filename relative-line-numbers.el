@@ -2,7 +2,7 @@
 
 ;; Author: Fanael Linithien <fanael4@gmail.com>
 ;; URL: https://github.com/Fanael/relative-line-numbers
-;; Version: 0.2.6
+;; Version: 0.3
 ;; Package-Requires: ((emacs "24"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -47,9 +47,18 @@
   :type 'number
   :group 'relative-line-numbers)
 
-(defcustom relative-line-numbers-count-invisible-lines t
-  "If nil, do not count invisible lines."
-  :type 'boolean
+(defcustom relative-line-numbers-motion-function #'forward-line
+  "The function used internally to move between lines.
+
+It should take one argument, the number of lines to move forward.
+Recommended functions are:
+ - `forward-line': invisible lines will be counted, counting follows physical
+   lines,
+ - `forward-visible-line': invisible lines will NOT be counted, counting follows
+   physical lines,
+ - `vertical-motion': invisible lines will NOT be counted, counting follows
+   VISUAL lines."
+  :type 'function
   :group 'relative-line-numbers)
 
 (defcustom relative-line-numbers-format #'relative-line-numbers-default-format
@@ -124,18 +133,15 @@ WINDOW is the window to show overlays in."
     (error "Direction can be only :forward or :backward"))
   (let ((limitsym (make-symbol "limit"))
         (lineoffsetsym (make-symbol "lineoffset"))
-        (windowsym (make-symbol "window"))
-        (forwardlinefuncsym (make-symbol "forwardlinefunc")))
+        (windowsym (make-symbol "window")))
     `(let* ((,limitsym ,limit)
             (,lineoffsetsym 0)
-            (,windowsym ,window)
-            (,forwardlinefuncsym (if relative-line-numbers-count-invisible-lines
-                                     'forward-line
-                                   'forward-visible-line)))
+            (,windowsym ,window))
        (while ,(if (eq direction :forward)
                    `(and (not (eobp)) (< (point) ,limitsym))
                  `(and (not (bobp)) (> (point) ,limitsym)))
-         (funcall ,forwardlinefuncsym ,(if (eq direction :forward) 1 -1))
+         (funcall relative-line-numbers-motion-function
+                  ,(if (eq direction :forward) 1 -1))
          (setq ,lineoffsetsym
                (,(if (eq direction :forward)
                      #'1+
@@ -151,7 +157,9 @@ WINDOW is the window to show overlays in."
   (let ((window (selected-window)))
     (save-excursion
       (let* ((inhibit-point-motion-hooks t)
-             (pos (line-beginning-position))
+             (pos (save-excursion
+                    (funcall relative-line-numbers-motion-function 0)
+                    (point)))
              (start (window-start))
              (end (window-end nil t)))
         (when (and (<= start pos)

@@ -44,7 +44,8 @@ is disabled before enabling `relative-line-numbers-mode`.
 
  * `relative-line-numbers-format` is a function determining how the line numbers
    are formatted.
- * `relative-line-numbers-count-invisible-lines` controls whether or not
-   invisible lines should be counted.
+ * `relative-line-numbers-motion-function` controls the function used to move
+   between lines. This determines whether or not invisible lines are counted and
+   whether physical or visual lines are counted.
  * `relative-line-numbers-delay` controls the delay before updating the line
    numbers.
