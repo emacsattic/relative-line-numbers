@@ -138,8 +138,8 @@ WINDOW is the window to show overlays in."
          (funcall ,forwardlinefuncsym ,(if (eq direction :forward) 1 -1))
          (setq ,lineoffsetsym
                (,(if (eq direction :forward)
-                     '1+
-                   '1-)
+                     #'1+
+                   #'1-)
                 ,lineoffsetsym))
          (relative-line-numbers--make-overlay
           (funcall relative-line-numbers-format ,lineoffsetsym)
