@@ -2,7 +2,7 @@
 
 ;; Author: Fanael Linithien <fanael4@gmail.com>
 ;; URL: https://github.com/Fanael/relative-line-numbers
-;; Version: 0.3
+;; Version: 0.3.1
 ;; Package-Requires: ((emacs "24"))
 
 ;; This file is NOT part of GNU Emacs.
@@ -267,7 +267,9 @@ This function changes the margin width if STR would not fit."
     (overlay-put overlay 'before-string
                  (propertize " " 'display `((margin left-margin)
                                             ,(propertize str 'face face))))
-    (push overlay (window-parameter window 'relative-line-numbers--used-overlays))))
+    (set-window-parameter window 'relative-line-numbers--used-overlays
+                          (cons overlay
+                                (window-parameter window 'relative-line-numbers--used-overlays)))))
 
 (provide 'relative-line-numbers)
 ;;; relative-line-numbers.el ends here
