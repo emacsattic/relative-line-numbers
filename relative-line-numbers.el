@@ -115,15 +115,6 @@ mode if ARG is omitted or nil, and toggle it if ARG is `toggle'."
 Return the absolute value of OFFSET, converted to string."
   (number-to-string (abs offset)))
 
-(defmacro relative-line-numbers--do-current-buffer-windows (window &rest body)
-  "Loop over the windows displaying the current buffer.
-Evaluate BODY with WINDOW bound to each window displaying the current buffer."
-  (declare (indent 1))
-  (unless (symbolp window)
-    (error "name is not a symbol"))
-  `(dolist (,window (get-buffer-window-list nil nil t))
-     ,@body))
-
 (defmacro relative-line-numbers--make-line-overlays (direction limit window)
   "Make the line number overlays for lines before or after point.
 DIRECTION is either :forward or :backward.
@@ -177,7 +168,7 @@ WINDOW is the window to show overlays in."
 
 (defun relative-line-numbers--update-current-buffer ()
   "Update line numbers in all windows displaying the current buffer."
-  (relative-line-numbers--do-current-buffer-windows window
+  (dolist (window (get-buffer-window-list nil nil t))
     (with-selected-window window
       (relative-line-numbers--update-selected-window))))
 
@@ -237,7 +228,7 @@ The function operates on the selected window."
 
 (defun relative-line-numbers--set-current-buffer-margin ()
   "Set the left margin width in all windows showing the current buffer."
-  (relative-line-numbers--do-current-buffer-windows window
+  (dolist (window (get-buffer-window-list nil nil t))
     (with-selected-window window
       (relative-line-numbers--set-margin-width))))
 
@@ -248,7 +239,7 @@ The function operates on the selected window."
 
 (defun relative-line-numbers--delete-overlays ()
   "Delete all used overlays."
-  (relative-line-numbers--do-current-buffer-windows window
+  (dolist (window (get-buffer-window-list nil nil t))
     (relative-line-numbers--delete-window-overlays window)))
 
 (defun relative-line-numbers--make-overlay (str face window)
