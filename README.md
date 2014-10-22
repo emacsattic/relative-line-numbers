@@ -1,3 +1,6 @@
+[![Melpa Status](http://melpa.milkbox.net/packages/relative-line-numbers-badge.svg)](http://melpa.milkbox.net/#/relative-line-numbers)
+[![Melpa Stable Status](http://melpa-stable.milkbox.net/packages/relative-line-numbers-badge.svg)](http://melpa-stable.milkbox.net/#/relative-line-numbers)
+
 # Relative line numbers
 
 `relative-line-numbers` is an Emacs package that displays relative line numbers
