@@ -1,5 +1,5 @@
-[![Melpa Status](http://melpa.milkbox.net/packages/relative-line-numbers-badge.svg)](http://melpa.milkbox.net/#/relative-line-numbers)
-[![Melpa Stable Status](http://melpa-stable.milkbox.net/packages/relative-line-numbers-badge.svg)](http://melpa-stable.milkbox.net/#/relative-line-numbers)
+[![Melpa Status](http://melpa.org/packages/relative-line-numbers-badge.svg)](http://melpa.org/#/relative-line-numbers)
+[![Melpa Stable Status](http://stable.melpa.org/packages/relative-line-numbers-badge.svg)](http://stable.melpa.org/#/relative-line-numbers)
 
 # Relative line numbers
 
@@ -8,7 +8,7 @@ on the left margin.
 
 ## Installation
 
-The package is available in [MELPA](http://melpa.milkbox.net/).
+The package is available in [MELPA](http://melpa.org/).
 
 If you have MELPA in `package-archives`, use
 
