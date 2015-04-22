@@ -52,3 +52,4 @@ is disabled before enabling `relative-line-numbers-mode`.
    whether physical or visual lines are counted.
  * `relative-line-numbers-delay` controls the delay before updating the line
    numbers.
+ * `relative-line-numbers-max-count` controls the maximum number to display. Defaults to 0 : unlimited.

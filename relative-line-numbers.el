@@ -47,6 +47,11 @@
   :type 'number
   :group 'relative-line-numbers)
 
+(defcustom relative-line-numbers-max-count 0
+  "Count only up to this number of lines if greater than zero."
+  :type 'integer
+  :group 'relative-line-numbers)
+
 (defcustom relative-line-numbers-motion-function #'forward-line
   "The function used internally to move between lines.
 
@@ -129,8 +134,14 @@ WINDOW is the window to show overlays in."
             (,lineoffsetsym 0)
             (,windowsym ,window))
        (while ,(if (eq direction :forward)
-                   `(and (not (eobp)) (< (point) ,limitsym))
-                 `(and (not (bobp)) (> (point) ,limitsym)))
+                   `(and (not (eobp))
+                         (< (point) ,limitsym)
+                         (or (eq relative-line-numbers-max-count 0)
+                             (< ,lineoffsetsym relative-line-numbers-max-count)))
+                 `(and (not (bobp))
+                       (> (point) ,limitsym)
+                       (or (eq relative-line-numbers-max-count 0)
+                           (< (- relative-line-numbers-max-count) ,lineoffsetsym))))
          (funcall relative-line-numbers-motion-function
                   ,(if (eq direction :forward) 1 -1))
          (setq ,lineoffsetsym
